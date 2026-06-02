@@ -283,18 +283,19 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
   <div class="header-inner">
     <div class="header-left">
       <span class="header-logo">POCO</span>
-      <span class="header-title">Mexico &mdash; Mercado Libre Competitive Intelligence</span>
+      <span class="header-title" data-en="Mexico &mdash; Mercado Libre Competitive Intelligence" data-zh="墨西哥 &mdash; Mercado Libre 竞争情报">Mexico &mdash; Mercado Libre Competitive Intelligence</span>
     </div>
     <div class="header-right">
-      <button class="btn-pill btn-export" onclick="exportToXlsx()">&#8659; Export</button>
+      <button class="btn-pill btn-export" onclick="exportToXlsx()" data-en="&#8659; Export" data-zh="&#8659; 导出">&#8659; Export</button>
+      <button class="btn-pill" id="langBtn" onclick="toggleLang()">&#127760; 中文</button>
       <button class="btn-pill" id="themeToggle" onclick="toggleTheme()">&#9728;&#65039; Light</button>
     </div>
   </div>
   <div class="header-meta-bar">
     <div class="header-meta-inner">
-      <span class="meta-pill">Updated <span id="lastUpdated"></span></span>
+      <span class="meta-pill"><span data-en="Updated" data-zh="更新时间">Updated</span> <span id="lastUpdated"></span></span>
       <div class="meta-dot"></div>
-      <span class="meta-pill">Data range <span id="dataRange"></span></span>
+      <span class="meta-pill"><span data-en="Data range" data-zh="数据范围">Data range</span> <span id="dataRange"></span></span>
     </div>
   </div>
 </header>
@@ -305,24 +306,24 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 <div class="filter-bar">
   <div class="filter-inner">
     <div class="filter-group">
-      <span class="filter-label">Brands</span>
+      <span class="filter-label" data-en="Brands" data-zh="品牌">Brands</span>
       <div class="chip-row" id="brandChips"></div>
     </div>
     <div class="filter-divider"></div>
     <div class="filter-group">
-      <span class="filter-label">Price Band</span>
+      <span class="filter-label" data-en="Price Band" data-zh="价格段">Price Band</span>
       <div class="chip-row" id="bandChips"></div>
     </div>
     <div class="filter-divider"></div>
     <div class="filter-group">
-      <span class="filter-label">Dates</span>
+      <span class="filter-label" data-en="Dates" data-zh="日期">Dates</span>
       <div class="chip-row">
         <input type="date" id="dateFrom" onchange="applyFilters()">
         <span class="date-sep">&rarr;</span>
         <input type="date" id="dateTo" onchange="applyFilters()">
       </div>
     </div>
-    <span class="filter-hint">Hold Ctrl to select multiple brands or bands</span>
+    <span class="filter-hint" data-en="Hold Ctrl to select multiple brands or bands" data-zh="按住 Ctrl 可多选品牌或价格段">Hold Ctrl to select multiple brands or bands</span>
   </div>
 </div>
 
@@ -332,12 +333,12 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 <div class="tab-bar">
   <div class="tab-bar-inner">
     <div class="tab-group">
-      <button class="tab-btn active" onclick="switchTab('matrix',this)">Overview</button>
-      <button class="tab-btn" onclick="switchTab('ms',this)">Market Share</button>
-      <button class="tab-btn" onclick="switchTab('models',this)">Model Performance</button>
-      <button class="tab-btn" onclick="switchTab('declining',this)">Declining <span class="badge" id="decliningBadge" style="background:var(--neg);color:#fff">0</span></button>
-      <button class="tab-btn" onclick="switchTab('emerging',this)">Emerging <span class="badge" id="alertBadge" style="background:var(--warn);color:#000">0</span></button>
-      <button class="tab-btn" onclick="switchTab('readme',this)">&#128211; Readme</button>
+      <button class="tab-btn active" onclick="switchTab('matrix',this)" data-en="Overview" data-zh="总览">Overview</button>
+      <button class="tab-btn" onclick="switchTab('ms',this)" data-en="Market Share" data-zh="市场份额">Market Share</button>
+      <button class="tab-btn" onclick="switchTab('models',this)" data-en="Model Performance" data-zh="型号表现">Model Performance</button>
+      <button class="tab-btn" onclick="switchTab('declining',this)"><span data-en="Declining" data-zh="下滑">Declining</span> <span class="badge" id="decliningBadge" style="background:var(--neg);color:#fff">0</span></button>
+      <button class="tab-btn" onclick="switchTab('emerging',this)"><span data-en="Emerging" data-zh="新兴">Emerging</span> <span class="badge" id="alertBadge" style="background:var(--warn);color:#000">0</span></button>
+      <button class="tab-btn" onclick="switchTab('readme',this)"><span data-en="&#128211; Readme" data-zh="&#128211; 说明">&#128211; Readme</span></button>
     </div>
   </div>
 </div>
@@ -360,17 +361,17 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
   <div class="cards-row" id="brandCards"></div>
 
   <div class="chart-card chart-full">
-    <h3>Brand Market Share Over Time</h3>
+    <h3 data-en="Brand Market Share Over Time" data-zh="品牌市场份额走势">Brand Market Share Over Time</h3>
     <div id="chart-ms-trend" style="height:320px"></div>
   </div>
 
   <div class="chart-row">
     <div class="chart-card">
-      <h3>Latest Snapshot &mdash; Share Breakdown</h3>
+      <h3 data-en="Latest Snapshot &mdash; Share Breakdown" data-zh="最新快照 &mdash; 份额分布">Latest Snapshot &mdash; Share Breakdown</h3>
       <div id="chart-ms-pie" style="height:300px"></div>
     </div>
     <div class="chart-card">
-      <h3>Latest Snapshot &mdash; Market Share by Price Band</h3>
+      <h3 data-en="Latest Snapshot &mdash; Market Share by Price Band" data-zh="最新快照 &mdash; 各价格段市场份额">Latest Snapshot &mdash; Market Share by Price Band</h3>
       <div id="chart-band-bar" style="height:300px"></div>
     </div>
   </div>
@@ -384,12 +385,12 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 
   <div class="sku-controls">
     <div class="sku-ctrl-group">
-      <label>Sort by</label>
+      <label data-en="Sort by" data-zh="排序方式">Sort by</label>
       <select id="skuSortField" onchange="renderModelTab()">
-        <option value="so_latest">Latest Units (desc)</option>
-        <option value="so_total">Total Units across period</option>
-        <option value="price_latest">Latest Price (asc)</option>
-        <option value="sku">SKU Name (A&ndash;Z)</option>
+        <option value="so_latest" data-en="Latest Units (desc)" data-zh="最新销量（降序）">Latest Units (desc)</option>
+        <option value="so_total" data-en="Total Units across period" data-zh="区间总销量">Total Units across period</option>
+        <option value="price_latest" data-en="Latest Price (asc)" data-zh="最新价格（升序）">Latest Price (asc)</option>
+        <option value="sku" data-en="SKU Name (A&ndash;Z)" data-zh="型号名称（A-Z）">SKU Name (A&ndash;Z)</option>
       </select>
     </div>
   </div>
@@ -397,14 +398,14 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Brand</th>
-        <th>SKU</th>
-        <th>Band</th>
-        <th class="sortable" onclick="sortModels('so')">Latest Units &#8597;</th>
-        <th class="sortable" onclick="sortModels('price')">Latest Price &#8597;</th>
-        <th>MoM Units</th>
-        <th title="Blue = volume · Orange = price · Last 4 snapshots">Trend</th>
-        <th>Link</th>
+        <th data-en="Brand" data-zh="品牌">Brand</th>
+        <th data-en="SKU" data-zh="型号">SKU</th>
+        <th data-en="Band" data-zh="价格段">Band</th>
+        <th class="sortable" onclick="sortModels('so')" data-en="Latest Units &#8597;" data-zh="最新销量 &#8597;">Latest Units &#8597;</th>
+        <th class="sortable" onclick="sortModels('price')" data-en="Latest Price &#8597;" data-zh="最新价格 &#8597;">Latest Price &#8597;</th>
+        <th data-en="MoM Units" data-zh="月环比销量">MoM Units</th>
+        <th title="Blue = volume · Orange = price · Last 4 snapshots" data-en="Trend" data-zh="趋势">Trend</th>
+        <th data-en="Link" data-zh="链接">Link</th>
       </tr></thead>
       <tbody id="modelPerfBody"></tbody>
     </table>
@@ -418,16 +419,16 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 <div class="tab-pane" id="pane-declining">
 
   <div class="tab-section-header">
-    <h2>&#128201; Declining Models &mdash; Latest Snapshot <span id="decliningDate" class="caption-date" style="font-size:.67rem;font-weight:400;margin-left:4px"></span></h2>
+    <h2><span data-en="&#128201; Declining Models &mdash; Latest Snapshot" data-zh="&#128201; 下滑型号 &mdash; 最新快照">&#128201; Declining Models &mdash; Latest Snapshot</span> <span id="decliningDate" class="caption-date" style="font-size:.67rem;font-weight:400;margin-left:4px"></span></h2>
     <span class="badge" id="decliningCount" style="font-size:.74rem;padding:2px 10px;background:var(--neg);color:#fff">0</span>
   </div>
-  <p class="emerging-desc">Tracked SKUs whose 30-day sales in the most recent snapshot have fallen below <strong>100 units</strong>.</p>
+  <p class="emerging-desc" data-en="Tracked SKUs whose 30-day sales in the most recent snapshot have fallen below <strong>100 units</strong>." data-zh="在最新快照中，30日销量低于 <strong>100 件</strong> 的追踪 SKU。">Tracked SKUs whose 30-day sales in the most recent snapshot have fallen below <strong>100 units</strong>.</p>
 
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Brand</th><th>SKU</th><th>Band</th>
-        <th>Units (30d)</th><th>MoM Units</th><th>Last Price</th><th>Link</th>
+        <th data-en="Brand" data-zh="品牌">Brand</th><th data-en="SKU" data-zh="型号">SKU</th><th data-en="Band" data-zh="价格段">Band</th>
+        <th data-en="Units (30d)" data-zh="30日销量">Units (30d)</th><th data-en="MoM Units" data-zh="月环比销量">MoM Units</th><th data-en="Last Price" data-zh="最近价格">Last Price</th><th data-en="Link" data-zh="链接">Link</th>
       </tr></thead>
       <tbody id="decliningBody"></tbody>
     </table>
@@ -441,20 +442,18 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 <div class="tab-pane" id="pane-emerging">
 
   <div class="tab-section-header">
-    <h2>&#9889; Emerging Models &mdash; Latest Snapshot <span id="emergingDate" class="caption-date" style="font-size:.67rem;font-weight:400;margin-left:4px"></span></h2>
+    <h2><span data-en="&#9889; Emerging Models &mdash; Latest Snapshot" data-zh="&#9889; 新兴型号 &mdash; 最新快照">&#9889; Emerging Models &mdash; Latest Snapshot</span> <span id="emergingDate" class="caption-date" style="font-size:.67rem;font-weight:400;margin-left:4px"></span></h2>
     <span class="badge" id="emergingCount" style="font-size:.74rem;padding:2px 10px;background:var(--warn);color:#000">0</span>
   </div>
   <p class="emerging-desc">
-    These models belong to tracked brands, are selling above the alert threshold,
-    but are <strong>not yet in your SKU tracking list</strong>.
-    Consider adding them to <code>SKUS.xlsx</code> to track them going forward.
+    <span data-en="These models belong to tracked brands, are selling above the alert threshold, but are <strong>not yet in your SKU tracking list</strong>. Consider adding them to <code>SKUS.xlsx</code> to track them going forward." data-zh="以下型号属于追踪品牌，销量超过预警阈值，但<strong>尚未在 SKU 追踪清单中</strong>。建议将其添加到 <code>SKUS.xlsx</code> 以便持续追踪。">These models belong to tracked brands, are selling above the alert threshold, but are <strong>not yet in your SKU tracking list</strong>. Consider adding them to <code>SKUS.xlsx</code> to track them going forward.</span>
   </p>
 
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Brand</th><th>Listing Title</th><th>Price Band</th>
-        <th>Units (30d)</th><th>Best Price (MXN)</th><th>Link</th>
+        <th data-en="Brand" data-zh="品牌">Brand</th><th data-en="Listing Title" data-zh="商品标题">Listing Title</th><th data-en="Price Band" data-zh="价格段">Price Band</th>
+        <th data-en="Units (30d)" data-zh="30日销量">Units (30d)</th><th data-en="Best Price (MXN)" data-zh="最低价（MXN）">Best Price (MXN)</th><th data-en="Link" data-zh="链接">Link</th>
       </tr></thead>
       <tbody id="emergingBody"></tbody>
     </table>
@@ -707,7 +706,7 @@ function linkHtml(url){return url?`<a class="link-icon" href="${url}" target="_b
 function momBadge(val,isPrice=false,isPp=false){
   if(val==null)return'<span class="mom-badge mom-flat">—</span>';
   const zero=Math.abs(val)<(isPrice?5:isPp?.005:.5);
-  if(zero)return'<span class="mom-badge mom-flat">→ flat</span>';
+  if(zero)return`<span class="mom-badge mom-flat">→ ${T[currentLang].flat}</span>`;
   const pos=val>0;
   const cls=pos?'mom-pos':'mom-neg';
   const arrow=pos?'↑':'↓';
@@ -738,6 +737,57 @@ function plotLayout(extra){
 function toggleTheme(){
   const isLight=document.body.classList.toggle('light');
   document.getElementById('themeToggle').textContent=isLight?'🌙 Dark':'☀️ Light';
+  renderAll();
+}
+
+// ── Language system ───────────────────────────────────────────────────
+let currentLang='en';
+const T={
+  en:{
+    all:'All',
+    updated:'Updated', dataRange:'Data range',
+    flat:'flat', vsPrev:'vs prev', units:'units', models:' models', noData:'No data in selected range.',
+    noSkus:'No tracked SKUs match the current filters.',
+    noDeclining:'No tracked models below 100 units. 🎉',
+    noEmerging:'No emerging models. 🎉',
+    noDataShort:'No data.',
+    priceBandCol:'Price Band',
+    pulseEyebrow:'Market Pulse',
+    gained:'gained the most ground this month',
+    lost:'lost the most ground this month',
+    topGainer:'Top gainer:',
+    steepestDecline:'Steepest decline:',
+    matrixCaption1:'Data from',
+    matrixCaption2:'Each cell = top-selling tracked SKU per brand × price band (by 30-day units)',
+    matrixCaption3:'MoM badges compare to previous snapshot',
+  },
+  zh:{
+    all:'全部',
+    updated:'更新时间', dataRange:'数据范围',
+    flat:'持平', vsPrev:'vs 上期', units:'件', models:' 个型号', noData:'所选范围内无数据。',
+    noSkus:'当前筛选条件下无追踪 SKU。',
+    noDeclining:'当前无下滑型号。🎉',
+    noEmerging:'当前无新兴型号。🎉',
+    noDataShort:'暂无数据。',
+    priceBandCol:'价格段',
+    pulseEyebrow:'市场脉搏',
+    gained:'本月市场份额增幅最大',
+    lost:'本月市场份额跌幅最大',
+    topGainer:'销量增幅最大：',
+    steepestDecline:'销量跌幅最大：',
+    matrixCaption1:'数据来自',
+    matrixCaption2:'每格 = 该品牌×价格段中销量最高的追踪 SKU（30日销量）',
+    matrixCaption3:'MoM 徽章与上一快照对比',
+  }
+};
+
+function toggleLang(){
+  currentLang=currentLang==='en'?'zh':'en';
+  document.querySelectorAll('[data-en]').forEach(el=>{
+    el.innerHTML=el.dataset[currentLang]||el.dataset.en;
+  });
+  document.querySelectorAll('.chip-all').forEach(c=>{c.textContent=T[currentLang].all;});
+  document.getElementById('langBtn').textContent=currentLang==='zh'?'\u{1F310} EN':'\u{1F310} 中文';
   renderAll();
 }
 
@@ -825,13 +875,13 @@ function computeMarketPulse(snaps){
   if(!topBrand)return null;
 
   const icon=topDelta>0?'📈':'📉';
-  const dir=topDelta>0?'gained':'lost';
+  const dir=topDelta>0?T[currentLang].gained:T[currentLang].lost;
   const pp=(topDelta*100);
   const ppAbs=Math.abs(pp).toFixed(1);
-  let msg=`${icon} <strong>${topBrand}</strong> ${dir} the most ground this month — `;
+  let msg=`${icon} <strong>${topBrand}</strong> ${dir} — `;
   msg+=`<strong>${pp>0?'+':'−'}${ppAbs}pp → ${topMs.toFixed(1)}% MS</strong>.`;
-  if(topMoverName)msg+=` Top gainer: <strong>${topMoverBrand} ${topMoverName}</strong> +${topUnitDelta.toLocaleString('es-MX')} units MoM.`;
-  if(topDeclName&&topDeclBrand!==topMoverBrand)msg+=` Steepest decline: <strong>${topDeclBrand} ${topDeclName}</strong> ${topDeclDelta.toLocaleString('es-MX')} units.`;
+  if(topMoverName)msg+=` ${T[currentLang].topGainer} <strong>${topMoverBrand} ${topMoverName}</strong> +${topUnitDelta.toLocaleString('es-MX')} ${T[currentLang].units} MoM.`;
+  if(topDeclName&&topDeclBrand!==topMoverBrand)msg+=` ${T[currentLang].steepestDecline} <strong>${topDeclBrand} ${topDeclName}</strong> ${topDeclDelta.toLocaleString('es-MX')} ${T[currentLang].units}.`;
   return msg;
 }
 
@@ -849,7 +899,7 @@ function detectBandFromPrice(price){
 function renderMatrixTab(){
   const snaps=filteredSnapshots();
   if(!snaps.length){
-    document.getElementById('matrixGrid').innerHTML='<div class="empty-state">No data in selected range.</div>';
+    document.getElementById('matrixGrid').innerHTML=`<div class="empty-state">${T[currentLang].noData}</div>`;
     document.getElementById('marketPulse').style.display='none';
     return;
   }
@@ -866,7 +916,7 @@ function renderMatrixTab(){
     pulseEl.className='pulse-card';
     pulseEl.innerHTML=`<div class="pulse-icon">💡</div>
       <div class="pulse-content">
-        <div class="pulse-eyebrow">Market Pulse &nbsp;&middot;&nbsp; ${latest.date}</div>
+        <div class="pulse-eyebrow">${T[currentLang].pulseEyebrow} &nbsp;&middot;&nbsp; ${latest.date}</div>
         <div class="pulse-text">${pulse}</div>
       </div>`;
   } else {
@@ -888,7 +938,7 @@ function renderMatrixTab(){
   const prevStats=prev?prev.sku_stats||{}:{};
 
   let html='<div class="matrix-wrap"><table class="matrix-table"><thead><tr>';
-  html+=`<th class="matrix-corner">Price Band</th>`;
+  html+=`<th class="matrix-corner">${T[currentLang].priceBandCol}</th>`;
   for(const brand of brands)
     html+=`<th class="matrix-brand-hdr" style="color:${BRAND_COLOR[brand]||'var(--text)'}">${brand}</th>`;
   html+='</tr></thead><tbody>';
@@ -913,7 +963,7 @@ function renderMatrixTab(){
         html+=`<td class="matrix-cell${isPoco?' matrix-poco':''}">
           <div class="matrix-model">${nameShort}</div>
           <div class="matrix-price">${fmtPrice(top.price)}</div>
-          <div class="matrix-units">${fmtNum(top.so)} units${ms!=null?` <span class="matrix-ms" style="color:${BRAND_COLOR[brand]}">${fmt(ms,1)} MS</span>`:''}</div>
+          <div class="matrix-units">${fmtNum(top.so)} ${T[currentLang].units}${ms!=null?` <span class="matrix-ms" style="color:${BRAND_COLOR[brand]}">${fmt(ms,1)} MS</span>`:''}</div>
           <div class="matrix-mom">${momBadge(uDelta)} ${momBadge(pDelta,true)} ${momBadge(msDelta,false,true)}</div>
         </td>`;
       }
@@ -923,11 +973,11 @@ function renderMatrixTab(){
   html+='</tbody></table></div>';
 
   const captionHtml=`<div class="matrix-caption">
-    &#128197;&nbsp;Data from <span class="caption-date">${latest.date}</span>
+    &#128197;&nbsp;${T[currentLang].matrixCaption1} <span class="caption-date">${latest.date}</span>
     &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-    Each cell = <strong>top-selling tracked SKU</strong> per brand &times; price band (by 30-day units)
+    ${T[currentLang].matrixCaption2}
     &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-    MoM badges compare to previous snapshot
+    ${T[currentLang].matrixCaption3}
   </div>`;
   document.getElementById('matrixGrid').innerHTML=captionHtml+html;
 }
@@ -959,7 +1009,7 @@ function renderBrandCards(){
       const sign=delta>0?'+':'';
       const cls=delta>0?'pos':delta<0?'neg':'flat';
       const arr=delta>0?'↑':delta<0?'↓':'→';
-      deltaHtml=`<div class="bc-delta ${cls}">${arr} ${sign}${fmt(delta,2)} vs prev</div>`;
+      deltaHtml=`<div class="bc-delta ${cls}">${arr} ${sign}${fmt(delta,2)} ${T[currentLang].vsPrev}</div>`;
     }
     html+=`<div class="brand-card" style="--bc:${color}">
       <div class="bc-hero"></div>
@@ -1147,7 +1197,7 @@ function renderModelTab(){
     </tr>`;
   }).join('');
   document.getElementById('modelPerfBody').innerHTML=rows||
-    '<tr><td colspan="8" class="empty-state">No tracked SKUs match the current filters.</td></tr>';
+    `<tr><td colspan="8" class="empty-state">${T[currentLang].noSkus}</td></tr>`;
 }
 
 function sortModels(field){
@@ -1177,14 +1227,14 @@ function updateDecliningBadge(){
   const n=snaps.length?(snaps[snaps.length-1].declining?.length??0):0;
   ['decliningBadge','decliningCount'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el)el.textContent=id==='decliningCount'?n+' models':n;
+    if(el)el.textContent=id==='decliningCount'?n+T[currentLang].models:n;
   });
 }
 
 function renderDecliningTab(){
   const snaps=filteredSnapshots();
   if(!snaps.length){
-    document.getElementById('decliningBody').innerHTML='<tr><td colspan="7" class="empty-state">No data.</td></tr>';
+    document.getElementById('decliningBody').innerHTML=`<tr><td colspan="7" class="empty-state">${T[currentLang].noDataShort}</td></tr>`;
     return;
   }
   const latest=snaps[snaps.length-1];
@@ -1196,7 +1246,7 @@ function renderDecliningTab(){
   updateDecliningBadge();
   if(!filtered.length){
     document.getElementById('decliningBody').innerHTML=
-      '<tr><td colspan="7" class="empty-state">No tracked models below 100 units. 🎉</td></tr>';
+      `<tr><td colspan="7" class="empty-state">${T[currentLang].noDeclining}</td></tr>`;
     return;
   }
   const rows=filtered.map(d=>{
@@ -1223,12 +1273,12 @@ function updateAlertBadge(){
   const snaps=filteredSnapshots();
   const n=snaps.length?(snaps[snaps.length-1].emerging?.length??0):0;
   document.getElementById('alertBadge').textContent=n;
-  document.getElementById('emergingCount').textContent=n+' models';
+  document.getElementById('emergingCount').textContent=n+T[currentLang].models;
 }
 
 function renderEmergingTab(){
   const snaps=filteredSnapshots();
-  if(!snaps.length){document.getElementById('emergingBody').innerHTML='<tr><td colspan="6" class="empty-state">No data.</td></tr>';return;}
+  if(!snaps.length){document.getElementById('emergingBody').innerHTML=`<tr><td colspan="6" class="empty-state">${T[currentLang].noDataShort}</td></tr>`;return;}
   const latestSnap=snaps[snaps.length-1];
   const eEl=document.getElementById('emergingDate');if(eEl)eEl.textContent=latestSnap.date||'';
   const emerging=latestSnap.emerging??[];
@@ -1243,7 +1293,7 @@ function renderEmergingTab(){
       <td>${fmtPrice(r.price)}</td>
       <td>${linkHtml(r.link)}</td>
     </tr>`).join('');
-  document.getElementById('emergingBody').innerHTML=rows||'<tr><td colspan="6" class="empty-state">No emerging models. 🎉</td></tr>';
+  document.getElementById('emergingBody').innerHTML=rows||`<tr><td colspan="6" class="empty-state">${T[currentLang].noEmerging}</td></tr>`;
 }
 
 // ══════════════════════════════════════════════════════
