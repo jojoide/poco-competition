@@ -335,6 +335,7 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
     <div class="tab-group">
       <button class="tab-btn active" onclick="switchTab('matrix',this)" data-en="Overview" data-zh="总览">Overview</button>
       <button class="tab-btn" onclick="switchTab('ms',this)" data-en="Market Share" data-zh="市场份额">Market Share</button>
+      <button class="tab-btn" onclick="switchTab('segments',this)" data-en="Price Segments" data-zh="价格段分析">Price Segments</button>
       <button class="tab-btn" onclick="switchTab('models',this)" data-en="Model Performance" data-zh="型号表现">Model Performance</button>
       <button class="tab-btn" onclick="switchTab('declining',this)"><span data-en="Declining" data-zh="下滑">Declining</span> <span class="badge" id="decliningBadge" style="background:var(--neg);color:#fff">0</span></button>
       <button class="tab-btn" onclick="switchTab('emerging',this)"><span data-en="Emerging" data-zh="新兴">Emerging</span> <span class="badge" id="alertBadge" style="background:var(--warn);color:#000">0</span></button>
@@ -379,7 +380,28 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
 </div>
 
 <!-- ══════════════════════════════════════════════════════
-     TAB 3: MODEL PERFORMANCE
+     TAB 3: PRICE SEGMENTS
+══════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="pane-segments">
+
+  <div id="seg-mom-section"></div>
+
+  <div id="seg-raw-table" style="margin-top:14px"></div>
+
+  <div class="chart-card chart-full" style="margin-top:14px">
+    <h3 data-en="Sales Volume by Price Segment" data-zh="各价格段销量">Sales Volume by Price Segment</h3>
+    <div id="chart-seg-vol" style="height:340px"></div>
+  </div>
+
+  <div class="chart-card chart-full" style="margin-top:14px">
+    <h3 data-en="Segment Share of Total Volume" data-zh="各价格段占总销量比例">Segment Share of Total Volume</h3>
+    <div id="chart-seg-share" style="height:300px"></div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 4: MODEL PERFORMANCE
 ══════════════════════════════════════════════════════ -->
 <div class="tab-pane" id="pane-models">
 
@@ -760,6 +782,10 @@ const T={
     matrixCaption1:'Data from',
     matrixCaption2:'Each cell = top-selling tracked SKU per brand × price band (by 30-day units)',
     matrixCaption3:'MoM badges compare to previous snapshot',
+    segTab:'Price Segments', segVolTitle:'Sales Volume by Price Segment',
+    segShareTitle:'Segment Share of Total Volume', unitsAxis:'Units', shareAxis:'Share',
+    shareWord:'share', momSummary:'MoM Summary — Latest Snapshot',
+    rawData:'Raw Data by Snapshot', bandCol:'Band', momChange:'MoM Change',
   },
   zh:{
     all:'全部',
@@ -778,6 +804,9 @@ const T={
     matrixCaption1:'数据来自',
     matrixCaption2:'每格 = 该品牌×价格段中销量最高的追踪 SKU（30日销量）',
     matrixCaption3:'MoM 徽章与上一快照对比',
+    segTab:'价格段分析', segVolTitle:'各价格段销量', segShareTitle:'各价格段占总销量比例',
+    unitsAxis:'销量（件）', shareAxis:'占比', shareWord:'份额', momSummary:'月环比汇总 — 最新快照',
+    rawData:'各快照原始数据', bandCol:'价格段', momChange:'月环比变化',
   }
 };
 
@@ -815,6 +844,7 @@ function switchTab(name,btn){
   document.getElementById('pane-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='matrix')renderMatrixTab();
+  if(name==='segments')renderSegmentsTab();
   if(name==='models')renderModelTab();
   if(name==='declining')renderDecliningTab();
   if(name==='emerging')renderEmergingTab();
@@ -832,6 +862,7 @@ function applyFilters(){
 function renderAll(){
   renderBrandCards();renderMsTrend();renderMsPie();renderBandBar();updateAlertBadge();updateDecliningBadge();
   if(document.getElementById('pane-matrix').classList.contains('active'))renderMatrixTab();
+  if(document.getElementById('pane-segments').classList.contains('active'))renderSegmentsTab();
   if(document.getElementById('pane-models').classList.contains('active'))renderModelTab();
   if(document.getElementById('pane-declining').classList.contains('active'))renderDecliningTab();
   if(document.getElementById('pane-emerging').classList.contains('active'))renderEmergingTab();
@@ -1177,6 +1208,192 @@ function sortModelData(models){
   else if(sortF==='price_latest')models.sort((a,b)=>(a.latest.price||0)-(b.latest.price||0));
   else models.sort((a,b)=>a.sku.localeCompare(b.sku));
   return models;
+}
+
+// ══════════════════════════════════════════════════════
+// PRICE SEGMENTS TAB
+// ══════════════════════════════════════════════════════
+const BAND_COLOR_MAP={
+  '$2000-':'#59c2ff','$2000-4000':'#aad94c','$4000-6000':'#ff8f40',
+  '$6000-8000':'#f07178','$8000-10000':'#d2a6ff','$10000+':'#ffb454'
+};
+
+function computeSegmentData(){
+  const snaps=filteredSnapshots();
+  const bands=D.bands.filter(b=>activeBands.has(b));
+  const dates=snaps.map(s=>s.date);
+  const bandVols={};
+  for(const b of bands)bandVols[b]=[];
+  for(const snap of snaps){
+    const bv={};
+    for(const[,stat]of Object.entries(snap.sku_stats||{})){
+      if(!activeBrands.has(stat.brand))continue;
+      const band=detectBandFromPrice(stat.price);
+      if(!band||!activeBands.has(band))continue;
+      bv[band]=(bv[band]||0)+(stat.so||0);
+    }
+    for(const b of bands)bandVols[b].push(bv[b]||0);
+  }
+  // Compute share per snapshot
+  const bandShares={};
+  for(const b of bands)bandShares[b]=[];
+  for(let i=0;i<snaps.length;i++){
+    const total=bands.reduce((s,b)=>s+(bandVols[b][i]||0),0);
+    for(const b of bands)bandShares[b].push(total>0?+(bandVols[b][i]/total*100).toFixed(2):0);
+  }
+  return{snaps,bands,dates,bandVols,bandShares};
+}
+
+function renderSegmentsTab(){
+  const{snaps,bands,dates,bandVols,bandShares}=computeSegmentData();
+  const empty='<div class="empty-state">'+T[currentLang].noData+'</div>';
+  if(!snaps.length){
+    document.getElementById('chart-seg-vol').innerHTML=empty;
+    document.getElementById('chart-seg-share').innerHTML=empty;
+    document.getElementById('seg-mom-section').innerHTML='';
+    return;
+  }
+
+  // ── Chart 1: Stacked bar — volume ──────────────────────────────────
+  const volTraces=bands.map(band=>({
+    type:'bar',name:BAND_SHORT[band]||band,x:dates,y:bandVols[band],
+    marker:{color:BAND_COLOR_MAP[band]||'#aaa'},
+    text:bandVols[band],
+    texttemplate:'%{y:,.0f}',
+    textposition:'inside',
+    insidetextanchor:'middle',
+    constraintext:'inside',
+    textfont:{size:10,family:"'DM Mono',monospace",color:'rgba(255,255,255,0.9)'},
+    hovertemplate:'%{x}<br>'+(BAND_SHORT[band]||band)+': %{y:,.0f} '+T[currentLang].units+'<extra></extra>'
+  }));
+  const L1=plotLayout({
+    barmode:'stack',
+    margin:{t:10,b:60,l:70,r:150},
+    legend:{...plotLayout({}).legend,orientation:'v',x:1.02,y:0.5,yanchor:'middle'},
+    yaxis:{...plotLayout({}).yaxis,title:{text:T[currentLang].unitsAxis,font:{size:11}}},
+    xaxis:{...plotLayout({}).xaxis,type:'category'},
+  });
+  Plotly.newPlot('chart-seg-vol',volTraces,L1,{responsive:true,displayModeBar:false});
+
+  // ── Chart 2: Line — share ──────────────────────────────────────────
+  const shareTraces=bands.map(band=>({
+    type:'scatter',mode:'lines+markers',name:BAND_SHORT[band]||band,
+    x:dates,y:bandShares[band],
+    line:{color:BAND_COLOR_MAP[band]||'#aaa',width:2},
+    marker:{color:BAND_COLOR_MAP[band]||'#aaa',size:6},
+    hovertemplate:'%{x}<br>'+(BAND_SHORT[band]||band)+': %{y:.1f}%<extra></extra>'
+  }));
+  const L2=plotLayout({
+    margin:{t:10,b:60,l:60,r:150},
+    legend:{...plotLayout({}).legend,orientation:'v',x:1.02,y:0.5,yanchor:'middle'},
+    yaxis:{...plotLayout({}).yaxis,ticksuffix:'%',title:{text:T[currentLang].shareAxis,font:{size:11}},range:[0,null]},
+    xaxis:{...plotLayout({}).xaxis,type:'category'},
+  });
+  Plotly.newPlot('chart-seg-share',shareTraces,L2,{responsive:true,displayModeBar:false});
+
+  // ── MoM summary cards ──────────────────────────────────────────────
+  const sec=document.getElementById('seg-mom-section');
+  if(snaps.length<2){sec.innerHTML='';return;}
+  const li=snaps.length-1,pi=snaps.length-2;
+  const cols=Math.min(bands.length,6);
+  let html=`<div class="tab-section-header" style="margin-bottom:10px">
+    <h2 style="font-size:.9rem;font-weight:600">${T[currentLang].momSummary}</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:12px">`;
+  for(const band of bands){
+    const vol=bandVols[band][li]||0;
+    const pvol=bandVols[band][pi]||0;
+    const share=bandShares[band][li];
+    const pshare=bandShares[band][pi];
+    const vd=vol-pvol;
+    const sd=share-pshare;
+    const color=BAND_COLOR_MAP[band]||'var(--accent)';
+    const vdHtml=Math.abs(vd)<1
+      ?`<span style="color:var(--muted)">→ ${T[currentLang].flat}</span>`
+      :`<span style="color:${vd>0?'var(--pos)':'var(--neg)'}">${vd>0?'↑':'↓'} ${vd>0?'+':''}${Math.round(vd).toLocaleString('es-MX')} ${T[currentLang].units}</span>`;
+    const sdHtml=Math.abs(sd)<0.1
+      ?`<span style="color:var(--muted)">→ ${T[currentLang].flat}</span>`
+      :`<span style="color:${sd>0?'var(--pos)':'var(--neg)'}">${sd>0?'↑':'↓'} ${sd>0?'+':''}${sd.toFixed(1)}pp</span>`;
+    html+=`<div class="brand-card" style="--bc:${color}">
+      <div class="bc-hero"></div>
+      <div class="bc-body">
+        <div class="bc-label" style="font-size:.78rem">${BAND_SHORT[band]||band}</div>
+        <div class="bc-ms" style="color:${color};font-size:1.65rem">${vol.toLocaleString('es-MX')}</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-bottom:6px">${share.toFixed(1)}% ${T[currentLang].shareWord}</div>
+        <div style="font-size:.7rem;margin-bottom:3px">${vdHtml}</div>
+        <div style="font-size:.7rem">${sdHtml}</div>
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  sec.innerHTML=html;
+
+  // ── Raw data table ─────────────────────────────────────────────────
+  const tbl=document.getElementById('seg-raw-table');
+  let thtml=`<div class="tab-section-header" style="margin-bottom:10px">
+    <h2 style="font-size:.9rem;font-weight:600">${T[currentLang].rawData}</h2>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="min-width:72px">${T[currentLang].bandCol}</th>`;
+  for(const d of dates)thtml+=`<th style="text-align:right;min-width:90px">${d}</th>`;
+  if(snaps.length>=2)thtml+=`<th style="text-align:right;min-width:110px">${T[currentLang].momChange}</th>`;
+  thtml+='</tr></thead><tbody>';
+
+  for(const band of bands){
+    const color=BAND_COLOR_MAP[band]||'var(--accent)';
+    thtml+=`<tr style="--row-accent:${color}">
+      <td style="border-left:3px solid ${color};font-family:'DM Mono',monospace;font-size:.72rem;font-weight:600;white-space:nowrap">
+        ${BAND_SHORT[band]||band}
+      </td>`;
+    for(let i=0;i<dates.length;i++){
+      const vol=bandVols[band][i]||0;
+      const share=bandShares[band][i];
+      thtml+=`<td style="text-align:right;vertical-align:top">
+        <div style="font-weight:600;font-size:.78rem">${vol.toLocaleString('es-MX')}</div>
+        <div style="font-size:.66rem;color:var(--text2)">${share.toFixed(1)}%</div>
+      </td>`;
+    }
+    if(snaps.length>=2){
+      const vd=(bandVols[band][li]||0)-(bandVols[band][pi]||0);
+      const sd=bandShares[band][li]-bandShares[band][pi];
+      const vcls=vd>0?'color:var(--pos)':vd<0?'color:var(--neg)':'color:var(--muted)';
+      const scls=sd>0.05?'color:var(--pos)':sd<-0.05?'color:var(--neg)':'color:var(--muted)';
+      const varr=vd>0?'↑':vd<0?'↓':'→';
+      const sarr=Math.abs(sd)>0.05?(sd>0?'↑':'↓'):'→';
+      thtml+=`<td style="text-align:right;vertical-align:top">
+        <div style="font-size:.75rem;font-weight:600;${vcls}">${varr} ${vd>0?'+':''}${Math.round(vd).toLocaleString('es-MX')}</div>
+        <div style="font-size:.66rem;${scls}">${sarr} ${sd>0?'+':''}${sd.toFixed(1)}pp</div>
+      </td>`;
+    }
+    thtml+='</tr>';
+  }
+
+  // Total row
+  thtml+='<tr style="border-top:2px solid var(--border)">';
+  thtml+=`<td style="font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700;color:var(--text)">TOTAL</td>`;
+  for(let i=0;i<dates.length;i++){
+    const total=bands.reduce((s,b)=>s+(bandVols[b][i]||0),0);
+    thtml+=`<td style="text-align:right;vertical-align:top">
+      <div style="font-weight:700;font-size:.78rem">${total.toLocaleString('es-MX')}</div>
+      <div style="font-size:.66rem;color:var(--text2)">100%</div>
+    </td>`;
+  }
+  if(snaps.length>=2){
+    const totLi=bands.reduce((s,b)=>s+(bandVols[b][li]||0),0);
+    const totPi=bands.reduce((s,b)=>s+(bandVols[b][pi]||0),0);
+    const td=totLi-totPi;
+    const tcls=td>0?'color:var(--pos)':td<0?'color:var(--neg)':'color:var(--muted)';
+    const tarr=td>0?'↑':td<0?'↓':'→';
+    thtml+=`<td style="text-align:right;vertical-align:top">
+      <div style="font-size:.75rem;font-weight:700;${tcls}">${tarr} ${td>0?'+':''}${Math.round(td).toLocaleString('es-MX')}</div>
+      <div style="font-size:.66rem;color:var(--muted)">—</div>
+    </td>`;
+  }
+  thtml+='</tr>';
+
+  thtml+='</tbody></table></div>';
+  tbl.innerHTML=thtml;
 }
 
 function renderModelTab(){
