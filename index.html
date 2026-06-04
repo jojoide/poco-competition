@@ -99,8 +99,9 @@ header{background:var(--s0);border-bottom:1px solid var(--border);position:stick
 .chip-all.active{background:var(--accent-dim);border-color:var(--accent)}
 .chip .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .date-sep{font-size:.72rem;color:var(--muted);padding:0 2px}
-input[type=date]{background:var(--s1);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px 8px;font-size:.72rem;outline:none}
-input[type=date]:focus{border-color:var(--accent)}
+input[type=date],input[type=month]{background:var(--s1);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px 8px;font-size:.72rem;outline:none;color-scheme:dark}
+body.light input[type=date],body.light input[type=month]{color-scheme:light}
+input[type=date]:focus,input[type=month]:focus{border-color:var(--accent)}
 
 /* ═══════════════════════════════════════════════════
    TAB BAR — pill style
@@ -318,9 +319,9 @@ tbody tr[data-brand-color] td:first-child{border-left-color:var(--row-accent,tra
     <div class="filter-group">
       <span class="filter-label" data-en="Dates" data-zh="日期">Dates</span>
       <div class="chip-row">
-        <input type="date" id="dateFrom" onchange="applyFilters()">
+        <input type="month" id="dateFrom" onchange="applyFilters()">
         <span class="date-sep">&rarr;</span>
-        <input type="date" id="dateTo" onchange="applyFilters()">
+        <input type="month" id="dateTo" onchange="applyFilters()">
       </div>
     </div>
     <span class="filter-hint" data-en="Hold Ctrl to select multiple brands or bands" data-zh="按住 Ctrl 可多选品牌或价格段">Hold Ctrl to select multiple brands or bands</span>
@@ -823,8 +824,9 @@ function toggleLang(){
 // ── Date filter ──────────────────────────────────────────────────────
 function filteredSnapshots(){
   return D.snapshots.filter(s=>{
-    if(dateFrom&&s.date<dateFrom)return false;
-    if(dateTo&&s.date>dateTo)return false;
+    const sm=s.date.slice(0,7);
+    if(dateFrom&&sm<dateFrom)return false;
+    if(dateTo&&sm>dateTo)return false;
     return true;
   });
 }
@@ -1213,6 +1215,46 @@ function sortModelData(models){
 // ══════════════════════════════════════════════════════
 // PRICE SEGMENTS TAB
 // ══════════════════════════════════════════════════════
+
+// Solve Ax = b via Gaussian elimination with partial pivoting.
+// Returns x (the band totals), or null if the system is singular.
+function solveGaussian(A, b){
+  const n=A.length;
+  const M=A.map((row,i)=>[...row,b[i]]);
+  for(let col=0;col<n;col++){
+    let maxRow=col;
+    for(let row=col+1;row<n;row++)
+      if(Math.abs(M[row][col])>Math.abs(M[maxRow][col]))maxRow=row;
+    [M[col],M[maxRow]]=[M[maxRow],M[col]];
+    if(Math.abs(M[col][col])<1e-12)return null;
+    for(let row=col+1;row<n;row++){
+      const f=M[row][col]/M[col][col];
+      for(let k=col;k<=n;k++)M[row][k]-=f*M[col][k];
+    }
+  }
+  const x=new Array(n).fill(0);
+  for(let row=n-1;row>=0;row--){
+    x[row]=M[row][n];
+    for(let col=row+1;col<n;col++)x[row]-=M[row][col]*x[col];
+    x[row]/=M[row][row];
+  }
+  return x;
+}
+
+// Recover the full-market band totals from the ms data + total_sales.
+// Uses the identity: ms[brand][band] * band_total = brand_units_in_band
+// and sum_bands(brand_units_in_band) = ms[brand].total * total_sales
+function recoverBandTotals(snap, allBands){
+  const brands=D.brands;
+  const A=brands.map(brand=>allBands.map(band=>snap.ms[brand]?.[band]??0));
+  const b=brands.map(brand=>(snap.ms[brand]?.total??0)*snap.total_sales);
+  const x=solveGaussian(A,b);
+  if(!x)return null;
+  const result={};
+  allBands.forEach((band,i)=>result[band]=Math.max(0,Math.round(x[i])));
+  return result;
+}
+
 const BAND_COLOR_MAP={
   '$2000-':'#59c2ff','$2000-4000':'#aad94c','$4000-6000':'#ff8f40',
   '$6000-8000':'#f07178','$8000-10000':'#d2a6ff','$10000+':'#ffb454'
@@ -1220,21 +1262,39 @@ const BAND_COLOR_MAP={
 
 function computeSegmentData(){
   const snaps=filteredSnapshots();
-  const bands=D.bands.filter(b=>activeBands.has(b));
+  const allBands=D.bands; // all 6 bands needed for the linear system
+  const bands=D.bands.filter(b=>activeBands.has(b)); // what to display
   const dates=snaps.map(s=>s.date);
   const bandVols={};
   for(const b of bands)bandVols[b]=[];
+
   for(const snap of snaps){
-    const bv={};
-    for(const[,stat]of Object.entries(snap.sku_stats||{})){
-      if(!activeBrands.has(stat.brand))continue;
-      const band=detectBandFromPrice(stat.price);
-      if(!band||!activeBands.has(band))continue;
-      bv[band]=(bv[band]||0)+(stat.so||0);
+    // Recover full-market band totals via linear system using ms data
+    const recovered=recoverBandTotals(snap,allBands);
+    if(recovered){
+      for(const b of bands)bandVols[b].push(recovered[b]??0);
+    } else {
+      // Fallback: scale sku_stats totals by ms-implied brand totals
+      const bv={};
+      for(const b of bands)bv[b]=0;
+      const brandTracked={};
+      for(const[,stat]of Object.entries(snap.sku_stats||{})){
+        if(!activeBrands.has(stat.brand))continue;
+        brandTracked[stat.brand]=(brandTracked[stat.brand]||0)+(stat.so||0);
+      }
+      for(const[,stat]of Object.entries(snap.sku_stats||{})){
+        if(!activeBrands.has(stat.brand))continue;
+        const band=detectBandFromPrice(stat.price);
+        if(!band||!activeBands.has(band))continue;
+        const implied=(snap.ms[stat.brand]?.total??0)*snap.total_sales;
+        const tracked=brandTracked[stat.brand]||1;
+        bv[band]+=(stat.so/tracked)*implied;
+      }
+      for(const b of bands)bandVols[b].push(Math.round(bv[b]||0));
     }
-    for(const b of bands)bandVols[b].push(bv[b]||0);
   }
-  // Compute share per snapshot
+
+  // Compute share per snapshot (share of displayed bands' total)
   const bandShares={};
   for(const b of bands)bandShares[b]=[];
   for(let i=0;i<snaps.length;i++){
@@ -1550,6 +1610,79 @@ function exportToXlsx(){
   }
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mxRows),'Brand Matrix');
 
+  // ── Market Summary sheet ──────────────────────────────────────────
+  const dates=snaps.map(s=>s.date);
+  const sumRows=[];
+  const hdrStyle=['','...brands/bands as rows, dates as columns'];
+
+  // Recover band totals for each snapshot
+  const snapBandTotals=snaps.map(s=>recoverBandTotals(s,D.bands)||{});
+
+  // Helper: push a titled section header
+  const sec=(title)=>{sumRows.push([title,...dates]);};
+  const blank=()=>sumRows.push([]);
+
+  // Section 1: Sales Volume by Segment
+  sec('Sales Volume by Segment (units)');
+  for(const band of bands){
+    sumRows.push([BAND_SHORT[band]||band,...snaps.map(s=>snapBandTotals[snaps.indexOf(s)][band]??'')]);
+  }
+  sumRows.push(['TOTAL',...snaps.map(s=>s.total_sales)]);
+  blank();
+
+  // Section 2: Market Share by Segment (% of total_sales)
+  sec('Market Share by Segment (% of total market)');
+  for(const band of bands){
+    sumRows.push([BAND_SHORT[band]||band,...snaps.map(s=>{
+      const bt=snapBandTotals[snaps.indexOf(s)][band];
+      return bt!=null&&s.total_sales?+(bt/s.total_sales*100).toFixed(2):'';
+    })]);
+  }
+  blank();
+
+  // Section 3: Sales Volume by Brand (ms.total × total_sales)
+  sec('Sales Volume by Brand (units, all SKUs incl. untracked)');
+  for(const brand of brands){
+    sumRows.push([brand,...snaps.map(s=>Math.round((s.ms[brand]?.total??0)*s.total_sales))]);
+  }
+  sumRows.push(['TOTAL (tracked brands)',...snaps.map(s=>
+    Math.round(brands.reduce((acc,b)=>acc+(s.ms[b]?.total??0)*s.total_sales,0))
+  )]);
+  blank();
+
+  // Section 4: Market Share by Brand (ms.total as %)
+  sec('Market Share by Brand (% of total market)');
+  for(const brand of brands){
+    sumRows.push([brand,...snaps.map(s=>+(((s.ms[brand]?.total??0)*100).toFixed(2)))]);
+  }
+  sumRows.push(['Combined tracked brands',...snaps.map(s=>
+    +(brands.reduce((acc,b)=>acc+(s.ms[b]?.total??0),0)*100).toFixed(2)
+  )]);
+  blank();
+
+  // Section 5: POCO Sales Volume by Segment (ms["POCO"][band] × band_total)
+  sec('POCO Sales Volume by Segment (units)');
+  for(const band of bands){
+    sumRows.push([BAND_SHORT[band]||band,...snaps.map(s=>{
+      const bt=snapBandTotals[snaps.indexOf(s)][band]??0;
+      return Math.round((s.ms['POCO']?.[band]??0)*bt);
+    })]);
+  }
+  sumRows.push(['POCO TOTAL',...snaps.map(s=>Math.round((s.ms['POCO']?.total??0)*s.total_sales))]);
+  blank();
+
+  // Section 6: POCO Market Share by Segment (ms["POCO"][band] as %)
+  sec('POCO Market Share by Segment (% within each price band)');
+  for(const band of bands){
+    sumRows.push([BAND_SHORT[band]||band,...snaps.map(s=>+(((s.ms['POCO']?.[band]??0)*100).toFixed(2)))]);
+  }
+  sumRows.push(['POCO overall MS',...snaps.map(s=>+(((s.ms['POCO']?.total??0)*100).toFixed(2)))]);
+
+  const sumWs=XLSX.utils.aoa_to_sheet(sumRows);
+  // Column widths: label col wide, date cols medium
+  sumWs['!cols']=[{wch:28},...dates.map(()=>({wch:14}))];
+  XLSX.utils.book_append_sheet(wb,sumWs,'Market Summary');
+
   XLSX.writeFile(wb,`POCO_Competitive_${latest.date.replace(/-/g,'')}.xlsx`);
 }
 
@@ -1609,9 +1742,9 @@ function init(){
   document.getElementById('dataRange').textContent=dates.length?`${dates[0]} → ${dates[dates.length-1]}`:'&mdash;';
 
   if(dates.length){
-    document.getElementById('dateFrom').value=dates[0];
-    document.getElementById('dateTo').value=dates[dates.length-1];
-    dateFrom=dates[0];dateTo=dates[dates.length-1];
+    document.getElementById('dateFrom').value=dates[0].slice(0,7);
+    document.getElementById('dateTo').value=dates[dates.length-1].slice(0,7);
+    dateFrom=dates[0].slice(0,7);dateTo=dates[dates.length-1].slice(0,7);
   }
 
   makeChips('brandChips',D.brands,
